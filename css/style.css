@@ -1,0 +1,19 @@
+
+
+canvas{
+    border: solid 1px yellow;
+    background-color: black;
+}
+
+.hide{
+    display:none;    
+}
+
+#menu{
+    margin: 10px;
+    display: flex;
+}
+
+#menu button{
+    margin-right: 10px;
+}
