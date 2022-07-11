@@ -1,7 +1,7 @@
 
 function myGame() {
 
-    let invaders, invaderIndex, animate, tCode, isBtnPressed, directionX, soundSwitch, canonShot, invaderShot;
+    let invaders, particles, invaderIndex, animate, tCode, isBtnPressed, directionX, soundSwitch, canonShot, invaderShot, score;
 
 
     function el(css) {
@@ -18,6 +18,10 @@ function myGame() {
     const KEY_LEFT = 'ArrowLeft'; // tastencode für linke pfeiltaste
     const KEY_RIGHT = 'ArrowRight'; // tastencode für rechte pfeiltaste
     const INVADER_PER_ROW = 10; // Invader pro reihe
+    const INVADER_POINTS = 20; // Punkte pro Invader
+    const DEATH_POINTS = -100; // Punktabzug beim gegnerischen treffer
+    const TEXT_SIZE = 35; // Schriftgroesse
+
 
     const allSounds = {
         attack: 'audio/shot.mp3',
@@ -50,8 +54,15 @@ function myGame() {
 
         },
         draw: function () {
-            ctx.fillStyle = this.col;
-            ctx.fillRect(this.x, this.y, this.w, this.h);
+
+            const image = new Image();
+            image.src = './data/invader.png';
+            if(image){
+                ctx.drawImage(image,this.x,this.y,this.w,this.h);
+            }
+
+            //ctx.fillStyle = this.col;
+            //ctx.fillRect(this.x, this.y, this.w, this.h);
         },
         move: function () {
 
@@ -107,8 +118,15 @@ function myGame() {
             this.draw();
         },
         draw: function () {
-            ctx.fillStyle = this.col;
-            ctx.fillRect(this.x, this.y, this.w, this.h);
+
+            const image = new Image();
+            image.src = './data/ship.png';
+            if(image){
+                ctx.drawImage(image,this.x,this.y,this.w,this.h);
+            }
+            
+            //ctx.fillStyle = this.col;
+            //ctx.fillRect(this.x, this.y, this.w, this.h);
         },
         fire: function (dY) {
             return new Shot(this.x + this.w / 2, this.y, dY);
@@ -136,6 +154,36 @@ function myGame() {
         };
     }
 
+    function Particle(x, y, speedX, speedY, radius, fade, color){
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.speedY = speedY;
+        this.speedX = speedX;
+        this.radius = radius;
+        this.opacity = 1;
+        
+        this.move = function (){
+            this.draw();
+            this.x += speedX;
+            this.y += speedY;
+            // Der background soll nicht faden, daher wird es je nach Particel verwendung mit dem Flag gesteuert
+            if(fade){
+                this.opacity -= 0.01;
+            }
+        }
+        this.draw = function (){
+            ctx.save();
+            ctx.globalAlpha = this.opacity;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            ctx.closePath();
+            ctx.restore();
+        }
+    }
+
 
     //  ===================================== Funktionen ==================================
 
@@ -150,6 +198,9 @@ function myGame() {
         soundSwitch = true; // default, sound an
         canonShot = null;
         invaderShot = null;
+
+        particles = [];
+        score = 0;
     }
 
     function playSound(path) {
@@ -180,9 +231,26 @@ function myGame() {
         ctx.clearRect(0, 0, co.width, co.height);
         animate = requestAnimationFrame(render); // 60 fps
 
+        drawScore();
+
         playerCanon.move();
 
         invaders.forEach(invader => invader.move());
+        particles.forEach((particle , index) => {
+
+            if(particle.y >= co.height - particle.radius){
+                particle.y = 0 - particle.radius;
+                particle.x = Math.random() * co.width;
+            }
+
+            if(particle.opacity <= 0){
+                setTimeout(() => {
+                    particles.splice(index, 1);
+                },0)
+            } else{
+                particle.move()
+            }
+        });
 
         // Zeichnen der Kugel, wenn diese aktiv sind
         canonShot && canonShot.draw();
@@ -208,20 +276,24 @@ function myGame() {
 
             // Beim treffen eines invaders
             if (hit) {
+                createParticles(hit.x, hit.y, 20, 5, 'lime');
                 playSound(allSounds.death);
                 hit.alive = false;
                 canonShot = null;
                 hit = null;
+                score += INVADER_POINTS;
             } else {
                 // Beim verlassen des Spielfeldes
                 if (!canonShot.move()) {
                     canonShot = null;
                 }
             }
-    }
-
-    // sieg oder niederlage... das vorgehen bleibt gleich nur mit anderem sound und text
-    function gameEnds(sound, text) {
+        }
+        
+        // sieg oder niederlage... das vorgehen bleibt gleich nur mit anderem sound und text
+        function gameEnds(sound, text) {
+        
+        score += DEATH_POINTS;
         playSound(sound);
 
         let outputDiv = el('#output');
@@ -231,7 +303,10 @@ function myGame() {
 
         let p = create('p');
         p.innerText = text;
+        let pScore = create('p');
+        pScore.innerText = `Du hast ${score} Punkte!`;
         outputDiv.append(p);
+        outputDiv.append(pScore);
 
         cancelAnimationFrame(animate);
         startGame();
@@ -241,13 +316,14 @@ function myGame() {
     function startGame() {
         ctx.clearRect(0, 0, co.width, co.height);
         initVars();
+        createBackground();
         invadersKlonFabrik();
         playerCanon.draw();
         invaders.forEach(invader => invader.draw());
     }
 
     function invadersKlonFabrik() {
-        let x = 10, y = 10, gap = 60;
+        let x = 10, y = 80, gap = 60;
         // loop startet bei 1 damit wir hier mit Modulo rechnen können
         for (let i = 1; i <= 40; i++) {
             let klon = Object.create(protoInvader);
@@ -263,6 +339,32 @@ function myGame() {
                 x = INVADER_PER_ROW;
                 y += 50;
             }
+        }
+    }
+
+    function createBackground(){
+        for(let i = 0; i < 100; i++){
+            particles.push(new Particle(
+                Math.random() * co.width, 
+                Math.random() * co.height, 
+                0, 
+                0.5, 
+                Math.random() * 3, 
+                false,
+                'white'));
+        }
+    }
+
+    function createParticles(x, y, numOfParticles, scale, color){
+        for(let i = 0; i < numOfParticles; i++){
+            particles.push(new Particle(
+                x, 
+                y, 
+                (Math.random() - 0.5 ) * 2, 
+                (Math.random() - 0.5 ) * 2, 
+                Math.random() * scale, 
+                true,
+                color));
         }
     }
 
@@ -286,6 +388,14 @@ function myGame() {
 
     function checkUp(e) {
         isBtnPressed = false;
+    }
+
+    function drawScore(){
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "white";
+        ctx.font = TEXT_SIZE + "px Comic Sans MS";
+        ctx.fillText(`Score ${score}`, co.width - playerCanon.w/2, 50)
     }
     
     //  ===================================== Aufrufe und Zuweisungen =====================

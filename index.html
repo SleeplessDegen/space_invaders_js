@@ -7,12 +7,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="js/app.js" defer></script>
   <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="css/w3.css">
   <link rel="stylesheet" href="css/style.css">
   <title>Document</title>
 </head>
 
 <body>
-  <h1>Space Invaders</h1>
+  <!-- The Modal -->
+<div id="id01" class="w3-modal">
+  <div class="w3-modal-content">
+    <div id="goos" class="w3-container">
+      <span onclick="document.getElementById('id01').style.display='none'"
+      class="w3-button w3-display-topright">&times;</span>
+      <p>Some text in the Modal..</p>
+      <p>Some text in the Modal..</p>
+    </div>
+  </div>
+</div>
 
   <div>
     <canvas id="canvas" height="800" width="700"></canvas>
