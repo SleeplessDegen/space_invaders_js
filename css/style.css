@@ -1,3 +1,44 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: sans-serif;
+}
+
+#highscore{
+    width: 50rem;
+    background-color: black;
+    border: solid black 1px;
+}
+
+h1{
+    color: whitesmoke;
+    font-size: 6rem;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+p{
+    font-size: 3rem;
+    text-align: center;
+}
+
+button {
+    padding: 1rem ;
+    font-size: 2rem;
+    margin: 1rem;
+    width: 80%;
+    
+    border: 0.2 rem solid green;
+    border-radius: 1rem;
+    background-color: whitesmoke;
+}
+
+@media only screen and (max-width:600){
+    #highscore{
+        width:99%;
+    }
+}
 
 canvas{
     border: solid 1px yellow;

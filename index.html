@@ -5,32 +5,30 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="js/app.js" defer></script>
+  <script src="js/app.js" type="module" defer></script>
   <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-  <link rel="stylesheet" href="css/w3.css">
   <link rel="stylesheet" href="css/style.css">
   <title>Document</title>
 </head>
 
 <body>
-  <!-- The Modal -->
-<div id="id01" class="w3-modal">
-  <div class="w3-modal-content">
-    <div id="goos" class="w3-container">
-      <span onclick="document.getElementById('id01').style.display='none'"
-      class="w3-button w3-display-topright">&times;</span>
-      <p>Some text in the Modal..</p>
-      <p>Some text in the Modal..</p>
-    </div>
+
+  
+
+  <div id="highscore" style="background-color: lime; " >
+    
+    <h1>HIGHSCORE</h1>
+    <div id="highscore-info"></div>
+    
+      <button id="btn-restart">PLAY AGAIN</button>
   </div>
-</div>
 
   <div>
     <canvas id="canvas" height="800" width="700"></canvas>
   </div>
 
   <div id="menu">
-    
+
     <div>
       <button id="btn-start">START GAME</button>
     </div>
@@ -38,10 +36,8 @@
     <div>
       <button id="btn-audio">Sound On</button>
     </div>
-    
-  </div>
 
-    <div id="output"></div>
+  </div>
 
 </body>
 

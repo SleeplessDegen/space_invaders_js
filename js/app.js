@@ -1,3 +1,5 @@
+import { db } from "../modules/localStorage.js";
+
 
 function myGame() {
 
@@ -22,6 +24,8 @@ function myGame() {
     const DEATH_POINTS = -100; // Punktabzug beim gegnerischen treffer
     const TEXT_SIZE = 35; // Schriftgroesse
 
+    let highscoreDiv = el('#highscore');
+    let canvasDiv = el('#canvas');
 
     const allSounds = {
         attack: 'audio/shot.mp3',
@@ -57,8 +61,8 @@ function myGame() {
 
             const image = new Image();
             image.src = './data/invader.png';
-            if(image){
-                ctx.drawImage(image,this.x,this.y,this.w,this.h);
+            if (image) {
+                ctx.drawImage(image, this.x, this.y, this.w, this.h);
             }
 
             //ctx.fillStyle = this.col;
@@ -121,10 +125,10 @@ function myGame() {
 
             const image = new Image();
             image.src = './data/ship.png';
-            if(image){
-                ctx.drawImage(image,this.x,this.y,this.w,this.h);
+            if (image) {
+                ctx.drawImage(image, this.x, this.y, this.w, this.h);
             }
-            
+
             //ctx.fillStyle = this.col;
             //ctx.fillRect(this.x, this.y, this.w, this.h);
         },
@@ -154,7 +158,7 @@ function myGame() {
         };
     }
 
-    function Particle(x, y, speedX, speedY, radius, fade, color){
+    function Particle(x, y, speedX, speedY, radius, fade, color) {
         this.x = x;
         this.y = y;
         this.color = color;
@@ -162,17 +166,17 @@ function myGame() {
         this.speedX = speedX;
         this.radius = radius;
         this.opacity = 1;
-        
-        this.move = function (){
+
+        this.move = function () {
             this.draw();
             this.x += speedX;
             this.y += speedY;
             // Der background soll nicht faden, daher wird es je nach Particel verwendung mit dem Flag gesteuert
-            if(fade){
+            if (fade) {
                 this.opacity -= 0.01;
             }
         }
-        this.draw = function (){
+        this.draw = function () {
             ctx.save();
             ctx.globalAlpha = this.opacity;
             ctx.beginPath();
@@ -236,18 +240,18 @@ function myGame() {
         playerCanon.move();
 
         invaders.forEach(invader => invader.move());
-        particles.forEach((particle , index) => {
+        particles.forEach((particle, index) => {
 
-            if(particle.y >= co.height - particle.radius){
+            if (particle.y >= co.height - particle.radius) {
                 particle.y = 0 - particle.radius;
                 particle.x = Math.random() * co.width;
             }
 
-            if(particle.opacity <= 0){
+            if (particle.opacity <= 0) {
                 setTimeout(() => {
                     particles.splice(index, 1);
-                },0)
-            } else{
+                }, 0)
+            } else {
                 particle.move()
             }
         });
@@ -256,7 +260,7 @@ function myGame() {
         canonShot && canonShot.draw();
         invaderShot && invaderShot.draw();
 
-        
+
         if (canonShot) {
             canonShotCheck();
         }
@@ -271,49 +275,89 @@ function myGame() {
     }
 
     // Prüfen ob Spielerkugel Invader getroffen hat oder noch im Spielfeld ist
-    function canonShotCheck(){
+    function canonShotCheck() {
         let hit = invaders.find(invader => invader.isHitBy(canonShot));
 
-            // Beim treffen eines invaders
-            if (hit) {
-                createParticles(hit.x, hit.y, 20, 5, 'lime');
-                playSound(allSounds.death);
-                hit.alive = false;
+        // Beim treffen eines invaders
+        if (hit) {
+            createParticles(hit.x, hit.y, 20, 5, 'lime');
+            playSound(allSounds.death);
+            hit.alive = false;
+            canonShot = null;
+            hit = null;
+            score += INVADER_POINTS;
+        } else {
+            // Beim verlassen des Spielfeldes
+            if (!canonShot.move()) {
                 canonShot = null;
-                hit = null;
-                score += INVADER_POINTS;
-            } else {
-                // Beim verlassen des Spielfeldes
-                if (!canonShot.move()) {
-                    canonShot = null;
-                }
             }
         }
-        
-        // sieg oder niederlage... das vorgehen bleibt gleich nur mit anderem sound und text
-        function gameEnds(sound, text) {
-        
-        score += DEATH_POINTS;
-        playSound(sound);
+    }
 
-        let outputDiv = el('#output');
-        outputDiv.innerText = "";
+    // sieg oder niederlage... das vorgehen bleibt gleich nur mit anderem sound und text
+    function gameEnds(sound, text) {
+
+        // Falsche stelle
+        score += DEATH_POINTS;
+
+        playSound(sound);
+        
+        if (score > 0)
+            saveScore();
 
         el('#btn-start').innerText = "RESTART GAME";
+
+        printTopTen(text);
+
+        cancelAnimationFrame(animate);
+        //startGame();
+    }
+
+    function printTopTen(text) {
+        // Nach höchstpunktzahl sortieren
+        const sortedArray = sortArray(db.readAllItem());
+
+        // Nur die Top 10 in das array speichern
+        const topTen = sortedArray.splice(0, 10);
+        console.log(topTen);
+
+        // Print vorerst
+
+        let highscoreInfo = el('#highscore-info');
+        highscoreInfo.innerText = "";
+        highscoreDiv.style.display = "block";
+        canvasDiv.style.display = "none";
+
+        /**
+         * 
+         let outputDiv = el('#output');
+         
 
         let p = create('p');
         p.innerText = text;
         let pScore = create('p');
+        //outputDiv.innerText = "";
         pScore.innerText = `Du hast ${score} Punkte!`;
         outputDiv.append(p);
         outputDiv.append(pScore);
+        */
 
-        cancelAnimationFrame(animate);
-        startGame();
+        topTen.forEach((entry) => {
+            let p = create('p');
+            p.innerText = `${entry.name}: ${entry.score}`;
+            highscoreInfo.appendChild(p);
+        })
+
+
     }
 
+    function sortArray(arr) {
+        return arr.sort((a, b) => b.score - a.score);
+    }
 
     function startGame() {
+        highscoreDiv.style.display = "none";
+        canvasDiv.style.display = "block";
         ctx.clearRect(0, 0, co.width, co.height);
         initVars();
         createBackground();
@@ -342,30 +386,45 @@ function myGame() {
         }
     }
 
-    function createBackground(){
-        for(let i = 0; i < 100; i++){
+    function createBackground() {
+        for (let i = 0; i < 100; i++) {
             particles.push(new Particle(
-                Math.random() * co.width, 
-                Math.random() * co.height, 
-                0, 
-                0.5, 
-                Math.random() * 3, 
+                Math.random() * co.width,
+                Math.random() * co.height,
+                0,
+                0.5,
+                Math.random() * 3,
                 false,
                 'white'));
         }
     }
 
-    function createParticles(x, y, numOfParticles, scale, color){
-        for(let i = 0; i < numOfParticles; i++){
+    function createParticles(x, y, numOfParticles, scale, color) {
+        for (let i = 0; i < numOfParticles; i++) {
             particles.push(new Particle(
-                x, 
-                y, 
-                (Math.random() - 0.5 ) * 2, 
-                (Math.random() - 0.5 ) * 2, 
-                Math.random() * scale, 
+                x,
+                y,
+                (Math.random() - 0.5) * 2,
+                (Math.random() - 0.5) * 2,
+                Math.random() * scale,
                 true,
                 color));
         }
+    }
+
+    function saveScore() {
+        const id = Date.now();
+        const name = window.prompt("Please enter your name!");
+
+        const data = {
+            id: id,
+            name: name,
+            score: score
+        };
+        db.setItem(data);
+
+        highscoreDiv.style.display = "block";
+        canvasDiv.style.display = "none";
     }
 
     function isGameOver() {
@@ -390,14 +449,14 @@ function myGame() {
         isBtnPressed = false;
     }
 
-    function drawScore(){
+    function drawScore() {
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
         ctx.fillStyle = "white";
         ctx.font = TEXT_SIZE + "px Comic Sans MS";
-        ctx.fillText(`Score ${score}`, co.width - playerCanon.w/2, 50)
+        ctx.fillText(`Score ${score}`, co.width - playerCanon.w / 2, 50)
     }
-    
+
     //  ===================================== Aufrufe und Zuweisungen =====================
     startGame();
     //  ===================================== Tastatur erkennung =====================
@@ -405,9 +464,9 @@ function myGame() {
 
     el('#btn-start').addEventListener('click', function () {
         if (!animate) {
-            let outputDiv = el('#output');
-            outputDiv.innerText = "";
 
+            highscoreDiv.style.display = "none";
+            canvasDiv.style.display = "block";
             this.innerText = "Started";
             render();
         } else {
@@ -415,6 +474,18 @@ function myGame() {
             this.innerText = "Paused";
             animate = false;
         }
+    });
+
+    el('#btn-restart').addEventListener('click', function () {
+            startGame();
+            if (!animate) {
+                render();
+            } else {
+                cancelAnimationFrame(animate);
+                this.innerText = "Paused";
+                animate = false;
+            }
+       
     });
 
     el('#btn-audio').addEventListener('click', function () {
@@ -425,6 +496,7 @@ function myGame() {
             this.innerText = 'Sound On';
         }
     });
+
 
     document.addEventListener('keydown', checkDown);
     document.addEventListener('keyup', checkUp);
