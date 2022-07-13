@@ -1,8 +1,12 @@
 export const db = {
     setItem: function(data){
-        const key = data.id;
-        const temp = JSON.stringify(data);
-        localStorage.setItem(key, temp);
+        if(data.name != null){
+            const key = data.id;
+            const temp = JSON.stringify(data);
+            localStorage.setItem(key, temp);
+        } else {
+            console.log("Empty name not valid!");
+        }
     },
     getItem: function(key){
         // 1 key wird ausgelesen

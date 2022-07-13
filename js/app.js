@@ -1,9 +1,10 @@
 import { db } from "../modules/localStorage.js";
+import { ServiceWorkerAktiv } from "../modules/service-aktiv.js";
 
 
 function myGame() {
 
-    let invaders, particles, invaderIndex, animate, tCode, isBtnPressed, directionX, soundSwitch, canonShot, invaderShot, score;
+    let invaders, particles, invader_speed, animate, tCode, isBtnPressed, directionX, soundSwitch, canonShot, invaderShot, score, topTenList;
 
 
     function el(css) {
@@ -21,7 +22,6 @@ function myGame() {
     const KEY_RIGHT = 'ArrowRight'; // tastencode für rechte pfeiltaste
     const INVADER_PER_ROW = 10; // Invader pro reihe
     const INVADER_POINTS = 20; // Punkte pro Invader
-    const DEATH_POINTS = -100; // Punktabzug beim gegnerischen treffer
     const TEXT_SIZE = 35; // Schriftgroesse
 
     let highscoreDiv = el('#highscore');
@@ -43,16 +43,12 @@ function myGame() {
         y: 10,
         w: 40,
         h: 40,
-        spY: 0.1, // speed Y-Achse (oben und unten)
         spX: 1, // speed X-Achse (links und rechts)
         dX: 0, // richtung (direction) X
         col: 'lightgrey',
-        id: 0,
         alive: true,
         init: function () {
-            invaders[invaderIndex] = this;
-            this.id = invaderIndex;
-            invaderIndex++;
+            invaders.push(this);
         },
         collision: function () {
 
@@ -65,8 +61,6 @@ function myGame() {
                 ctx.drawImage(image, this.x, this.y, this.w, this.h);
             }
 
-            //ctx.fillStyle = this.col;
-            //ctx.fillRect(this.x, this.y, this.w, this.h);
         },
         move: function () {
 
@@ -82,7 +76,7 @@ function myGame() {
             if (directionX === 0) { this.x += this.spX };
             if (directionX === 1) { this.x -= this.spX };
 
-            this.y += this.spY;
+            this.y += invader_speed;
 
             if (this.alive) {
                 this.draw();
@@ -117,7 +111,7 @@ function myGame() {
             }
             if (tCode === KEY_SPACE && !canonShot && isBtnPressed) {
                 playSound(allSounds.attack);
-                canonShot = this.fire(-20);
+                canonShot = this.fire(-30);
             }
             this.draw();
         },
@@ -193,7 +187,6 @@ function myGame() {
 
     function initVars() {
         invaders = []; // jeder invader kommt in das Array, damit ist es einfacher durch alle zu iterieren, filtern etc.
-        invaderIndex = 0;
         animate = false; // steuert die animation
         tCode = null; // aktiver tasten code
         isBtnPressed = false; // um raumschiff nur gezielt zu bewegen
@@ -203,8 +196,10 @@ function myGame() {
         canonShot = null;
         invaderShot = null;
 
-        particles = [];
+        topTenList = getTopTenList;
+        particles = []; // array für die einzelnen particle im spiel
         score = 0;
+        invader_speed = 0.2; // Geschwindikeit mit der die Invader runterkommen
     }
 
     function playSound(path) {
@@ -269,23 +264,36 @@ function myGame() {
             gameEnds(allSounds.over, "GAME OVER!");
         }
 
-        if (hasWon()) {
-            gameEnds(allSounds.win, "DU HAST GEWONNEN!");
+        if (nextWave()) {
+            // Neue welle von "schnelleren" gegnern wird erzeugt
+            invader_speed += 0.2;
+            invadersKlonFabrik();
         }
     }
 
     // Prüfen ob Spielerkugel Invader getroffen hat oder noch im Spielfeld ist
     function canonShotCheck() {
-        let hit = invaders.find(invader => invader.isHitBy(canonShot));
+        let indexToRemove;
+        let hit = invaders.find((invader, index) => {
 
+            let hittenInvader = invader.isHitBy(canonShot); 
+            if(hittenInvader){
+                indexToRemove = index;
+            }
+
+            return hittenInvader;
+        });
+        
         // Beim treffen eines invaders
         if (hit) {
-            createParticles(hit.x, hit.y, 20, 5, 'lime');
+            createParticles(hit.x, hit.y, 20, 7, 'lime');
             playSound(allSounds.death);
             hit.alive = false;
             canonShot = null;
             hit = null;
             score += INVADER_POINTS;
+            // Getroffenen Invader aus dem Array entfernen
+            invaders.splice(indexToRemove,1);
         } else {
             // Beim verlassen des Spielfeldes
             if (!canonShot.move()) {
@@ -297,13 +305,13 @@ function myGame() {
     // sieg oder niederlage... das vorgehen bleibt gleich nur mit anderem sound und text
     function gameEnds(sound, text) {
 
-        // Falsche stelle
-        score += DEATH_POINTS;
-
         playSound(sound);
-        
-        if (score > 0)
+
+        // 
+        if (score > 0){
+            console.log(topTenList[10]);
             saveScore();
+        }
 
         el('#btn-start').innerText = "RESTART GAME";
 
@@ -313,36 +321,28 @@ function myGame() {
         //startGame();
     }
 
-    function printTopTen(text) {
+    function getTopTenList(){
+
         // Nach höchstpunktzahl sortieren
         const sortedArray = sortArray(db.readAllItem());
 
         // Nur die Top 10 in das array speichern
-        const topTen = sortedArray.splice(0, 10);
-        console.log(topTen);
+        const sortedTopTen = sortedArray.splice(0, 10);
 
-        // Print vorerst
+        // null und undefinierte rausfiltern
+        topTenList = sortedTopTen.filter(n => n.name);
 
+        return topTenList;
+    }
+
+    function printTopTen(text) {
+        
         let highscoreInfo = el('#highscore-info');
         highscoreInfo.innerText = "";
         highscoreDiv.style.display = "block";
         canvasDiv.style.display = "none";
 
-        /**
-         * 
-         let outputDiv = el('#output');
-         
-
-        let p = create('p');
-        p.innerText = text;
-        let pScore = create('p');
-        //outputDiv.innerText = "";
-        pScore.innerText = `Du hast ${score} Punkte!`;
-        outputDiv.append(p);
-        outputDiv.append(pScore);
-        */
-
-        topTen.forEach((entry) => {
+        getTopTenList().forEach((entry) => {
             let p = create('p');
             p.innerText = `${entry.name}: ${entry.score}`;
             highscoreInfo.appendChild(p);
@@ -431,8 +431,8 @@ function myGame() {
         return playerCanon.isHitBy(invaderShot) || invaders.find(invader => invader.alive && invader.y > (co.height - 50));
     }
 
-    function hasWon() {
-        return !invaders.find(invader => invader.alive && invader.y < (co.height - 50));
+    function nextWave() {
+        return invaders.length < 3; //!invaders.find(invader => invader.alive && invader.y < (co.height - 50));
     }
 
     //  ===================================== Kollisionslogik =====================
@@ -477,24 +477,15 @@ function myGame() {
     });
 
     el('#btn-restart').addEventListener('click', function () {
-            startGame();
-            if (!animate) {
-                render();
-            } else {
-                cancelAnimationFrame(animate);
-                this.innerText = "Paused";
-                animate = false;
-            }
-       
-    });
-
-    el('#btn-audio').addEventListener('click', function () {
-        soundSwitch = !soundSwitch;
-        if (soundSwitch) {
-            this.innerText = 'Sound Off';
+        startGame();
+        if (!animate) {
+            render();
         } else {
-            this.innerText = 'Sound On';
+            cancelAnimationFrame(animate);
+            this.innerText = "Paused";
+            animate = false;
         }
+
     });
 
 
@@ -502,6 +493,8 @@ function myGame() {
     document.addEventListener('keyup', checkUp);
 
 }
+// Service Worker aktivieren
+ServiceWorkerAktiv();
 
 // lässt die ganze Party starten
 myGame();

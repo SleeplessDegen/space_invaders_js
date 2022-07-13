@@ -9,17 +9,19 @@
     width: 50rem;
     background-color: black;
     border: solid black 1px;
+    color: whitesmoke;
 }
 
 h1{
-    color: whitesmoke;
+    color: purple;
     font-size: 6rem;
     margin-top: 1rem;
     text-align: center;
 }
 
 p{
-    font-size: 3rem;
+    margin: 1rem;
+    font-size: 2rem;
     text-align: center;
 }
 
